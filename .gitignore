@@ -1,0 +1,8 @@
+/venv/
+/.git/
+/.idea/
+*.xml
+*.txt
+*.pdf
+*.json
+*.iml
