@@ -105,3 +105,9 @@ if __name__ == '__main__':
     url = 'https://magnit.ru/promo/?geo='
     parser = MagnitParser(url)
     parser.parse()
+
+    # Запрос для вывода товаров по группе:
+    # db.magnit.find({promo_name: "Свежее предложение"})
+
+    # Запрос для вывода групп товаров
+    # db.magnit.distinct("promo_name")
