@@ -19,12 +19,16 @@ class CategoryParser5ka:
         self.start_url = start_url
         self.cat_url = cat_url
 
-    def products_by_category(self, url_to_parse, category_code):
+    def products_by_category(self, url_with_promo, category_code):
         params = self.__params
         params['categories'] = category_code
-        response = requests.get(url_to_parse, params=params, headers=self.__headers)
-        data: dict = response.json()
-        return data['results']
+        result = []
+        while url_with_promo:
+            response = requests.get(url_with_promo, params=params, headers=self.__headers)
+            data: dict = response.json()
+            url_with_promo = data['next']
+            result.extend(data['results'])
+        return result
 
     def extract_category(self):
         response_cat = requests.get(self.cat_url, headers=self.__headers)
