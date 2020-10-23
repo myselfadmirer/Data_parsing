@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse
 from pymongo import MongoClient
-from datetime import datetime
 import dateparser
 
 
