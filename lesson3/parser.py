@@ -110,11 +110,13 @@ class GBParser:
                 else:
                     post_attrs['comments'] = self._get_comments(post_id)
                 self.save_to_sqlite(post_attrs)
+                post_attrs.clear()
                 # data.append(post_attrs)
             count += 1
-            print(count)
+            # print(data)
             soup = self._get_soup(url_to_parse, count)
-        self.session.commit()
+        self.session.close()
+        return
 
     def save_to_sqlite(self, data: dict):
         writer = self.session.query(Writer).filter_by(url=data['writer_url']).first()
@@ -122,14 +124,19 @@ class GBParser:
             writer = Writer(name=data['writer_name'], url=data['writer_url'])
             self.session.add(writer)
 
-        post = Post(url=data['url'], title=data['title'], description=data['description'], title_img=data['post_img'],
-                    published_at=data['post_date'], writer_id=writer.id)
-        self.session.add(post)
+        post = self.session.query(Post).filter_by(url=data['url']).first()
+        if not post:
+            post = Post(url=data['url'], title=data['title'], description=data['description'],
+                        title_img=data['post_img'],
+                        published_at=data['post_date'], writer_id=writer.id)
+            self.session.add(post)
 
         tag_dict = data['tags']
         for key, value in tag_dict.items():
-            tag = Tag(name=key, url=value)
-            self.session.add(tag)
+            tag = self.session.query(Tag).filter_by(url=value).first()
+            if not tag:
+                tag = Tag(name=key, url=value)
+                self.session.add(tag)
             tag_query = insert(tag_post_table).values(post_id=post.id, tag_id=tag.id)
             self.session.execute(tag_query)
 
@@ -143,10 +150,11 @@ class GBParser:
                 self.session.add(comment)
                 comment_query = insert(comments_table).values(post_id=post.id, comment_id=comment.id)
                 self.session.execute(comment_query)
+        self.session.commit()
+        return
 
 
 if __name__ == '__main__':
-
     engine = create_engine('sqlite:///gb_blog.db', echo=True)
     Base.metadata.create_all(bind=engine)
 
