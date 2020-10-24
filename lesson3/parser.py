@@ -18,6 +18,7 @@ class GBParser:
     }
 
     def __init__(self, start_url, comments_url):
+        self.session = SessionMaker()
         self.start_url = start_url
         self._url = urlparse(start_url)
         self.comments_url = comments_url
@@ -113,39 +114,35 @@ class GBParser:
             count += 1
             print(count)
             soup = self._get_soup(url_to_parse, count)
+        self.session.commit()
 
-    @staticmethod
-    def save_to_sqlite(data: dict):
-        session = SessionMaker()
-        try:
-            writer = session.query(Writer).filter_by(url=data['writer_url']).first()
-        except Exception:
+    def save_to_sqlite(self, data: dict):
+        writer = self.session.query(Writer).filter_by(url=data['writer_url']).first()
+        if not writer:
             writer = Writer(name=data['writer_name'], url=data['writer_url'])
-            session.add(writer)
+            self.session.add(writer)
 
         post = Post(url=data['url'], title=data['title'], description=data['description'], title_img=data['post_img'],
                     published_at=data['post_date'], writer_id=writer.id)
-        session.add(post)
+        self.session.add(post)
 
-        for key, value in data['tags']:
+        tag_dict = data['tags']
+        for key, value in tag_dict.items():
             tag = Tag(name=key, url=value)
-            session.add(tag)
+            self.session.add(tag)
             tag_query = insert(tag_post_table).values(post_id=post.id, tag_id=tag.id)
-            session.add(tag_query)
+            self.session.execute(tag_query)
 
         if data['comments']:
             for comment in data['comments']:
-                try:
-                    comment_writer = session.query(Writer).filter_by(url=comment['url']).first()
-                except Exception:
+                comment_writer = self.session.query(Writer).filter_by(url=comment['url']).first()
+                if not comment_writer:
                     comment_writer = Writer(name=comment['writer'], url=comment['url'])
-                    session.add(comment_writer)
+                    self.session.add(comment_writer)
                 comment = Comment(writer_id=comment_writer.id, text=comment['text'])
-                session.add(comment)
+                self.session.add(comment)
                 comment_query = insert(comments_table).values(post_id=post.id, comment_id=comment.id)
-                session.add(comment_query)
-
-        session.commit()
+                self.session.execute(comment_query)
 
 
 if __name__ == '__main__':

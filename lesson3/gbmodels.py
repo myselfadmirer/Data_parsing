@@ -53,7 +53,7 @@ class Tag(Base):
     __tablename__ = 'tag'
     id = Column(Integer, autoincrement=True, primary_key=True)
     name = Column(String, unique=False, nullable=False)
-    url = Column(String, unique=True, nullable=False)
+    url = Column(String, unique=False, nullable=False)
     posts = relationship('Post', secondary=tag_post_table)
 
 
