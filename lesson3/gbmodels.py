@@ -33,11 +33,11 @@ class Post(Base):
     title = Column(String, unique=False, nullable=False)
     description = Column(String, unique=False, nullable=True)
     title_img = Column(String, unique=False, nullable=True)
+    published_at = Column(Date, unique=False, nullable=False)
     writer_id = Column(Integer, ForeignKey('writer.id'))
     writer = relationship('Writer', back_populates='posts')
     tag = relationship('Tag', secondary=tag_post_table)
     comment = relationship('Comment', secondary=comments_table)
-    published_at = Column(Date, unique=False, nullable=False)
 
 
 class Writer(Base):
@@ -61,6 +61,7 @@ class Comment(Base):
     __tablename__ = 'comment'
     id = Column(Integer, autoincrement=True, primary_key=True)
     writer_id = Column(Integer, ForeignKey('writer.id'))
+    text = Column(String, unique=False, nullable=False)
     writer = relationship('Writer', back_populates='comments')
     posts = relationship('Post', secondary=comments_table)
 

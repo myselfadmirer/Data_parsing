@@ -1,7 +1,11 @@
 from urllib.parse import urlparse
 import dateparser
+import datetime
 import requests
 from bs4 import BeautifulSoup
+from sqlalchemy import create_engine, insert
+from sqlalchemy.orm import sessionmaker
+from gbmodels import Base, Writer, Post, Tag, Comment, tag_post_table, comments_table
 
 
 class GBParser:
@@ -64,11 +68,10 @@ class GBParser:
         return post_comments
 
     def parse(self, url_to_parse=None):
-        data = []
+        # data = []
         if not url_to_parse:
             url_to_parse = self.start_url
         count = 1
-        post_attrs = {}
         soup = self._get_soup(url_to_parse, count)
         while soup:
             content = soup.find('div', attrs={'class': 'post-items-wrapper'})
@@ -105,26 +108,55 @@ class GBParser:
                     post_attrs['comments'] = None
                 else:
                     post_attrs['comments'] = self._get_comments(post_id)
-                data.append(post_attrs)
+                self.save_to_sqlite(post_attrs)
+                # data.append(post_attrs)
             count += 1
             print(count)
-            print(data)
             soup = self._get_soup(url_to_parse, count)
 
-        return data, count
+    @staticmethod
+    def save_to_sqlite(data: dict):
+        session = SessionMaker()
+        try:
+            writer = session.query(Writer).filter_by(url=data['writer_url']).first()
+        except Exception:
+            writer = Writer(name=data['writer_name'], url=data['writer_url'])
+            session.add(writer)
 
-    def save_to_sqlite(self, ):
-        pass
+        post = Post(url=data['url'], title=data['title'], description=data['description'], title_img=data['post_img'],
+                    published_at=data['post_date'], writer_id=writer.id)
+        session.add(post)
+
+        for key, value in data['tags']:
+            tag = Tag(name=key, url=value)
+            session.add(tag)
+            tag_query = insert(tag_post_table).values(post_id=post.id, tag_id=tag.id)
+            session.add(tag_query)
+
+        if data['comments']:
+            for comment in data['comments']:
+                try:
+                    comment_writer = session.query(Writer).filter_by(url=comment['url']).first()
+                except Exception:
+                    comment_writer = Writer(name=comment['writer'], url=comment['url'])
+                    session.add(comment_writer)
+                comment = Comment(writer_id=comment_writer.id, text=comment['text'])
+                session.add(comment)
+                comment_query = insert(comments_table).values(post_id=post.id, comment_id=comment.id)
+                session.add(comment_query)
+
+        session.commit()
 
 
 if __name__ == '__main__':
+
+    engine = create_engine('sqlite:///gb_blog.db', echo=True)
+    Base.metadata.create_all(bind=engine)
+
+    SessionMaker = sessionmaker(bind=engine)
+
     url = 'https://geekbrains.ru/posts?page=1'
     comment_url = 'https://geekbrains.ru/api/v2/comments?commentable_type=Post&commentable_id=&order=desc'
     parser = GBParser(url, comment_url)
-    data_list, i = parser.parse()
-    print(i)
-    print(data_list)
-    # while i:
-    #     print('text')
-    # response = requests.get(url)
-    # print(BeautifulSoup(response.text, 'lxml'))
+    parser.parse()
+    print(1)
