@@ -26,14 +26,18 @@ class GBParser:
             response = requests.get(soup_url, params=params, headers=self._headers)
         else:
             response = requests.get(soup_url, headers=self._headers)
-        return BeautifulSoup(response.text, 'lxml')
+        if response != '<Response [404]>':
+            result = BeautifulSoup(response.text, 'lxml')
+        else:
+            result = 0
 
-    @staticmethod
-    def _get_tags(tag_soup, block, block_class):
+        return result
+
+    def _get_tags(self, tag_soup, block, block_class):
         tag_soup = tag_soup.findChildren(block, attrs={'class': block_class})
         tags_dict = {}
         for tag in tag_soup:
-            tag_url = tag.attrs.get('href')
+            tag_url = f'{self._url.scheme}://{self._url.hostname}{tag.attrs.get("href")}'
             tag_name = getattr(tag, 'text')
             tags_dict[tag_name] = tag_url
         return tags_dict
@@ -101,13 +105,11 @@ class GBParser:
                     post_attrs['comments'] = None
                 else:
                     post_attrs['comments'] = self._get_comments(post_id)
-            data.append(post_attrs)
+                data.append(post_attrs)
             count += 1
             print(count)
             print(data)
             soup = self._get_soup(url_to_parse, count)
-            if not soup.find('div', attrs={'class': 'post-items-wrapper'}):
-                soup = 0
 
         return data, count
 
