@@ -6,3 +6,6 @@
 *.pdf
 *.json
 *.iml
+*.db
+__pycache__/
+*.db-journal
