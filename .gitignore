@@ -6,3 +6,5 @@
 *.pdf
 *.json
 *.iml
+*.db
+/lesson3/gb_blog.db
