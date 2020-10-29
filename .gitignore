@@ -8,3 +8,4 @@
 *.iml
 *.db
 /lesson3/gb_blog.db
+/lesson4/scrapy.cfg
