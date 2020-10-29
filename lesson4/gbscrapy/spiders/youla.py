@@ -12,7 +12,7 @@ class YoulaSpider(scrapy.Spider):
         'pagination': '//div[contains(@class, "Paginator_block")]/a/@href',
         'adv_title': '//div[contains(@class, "AdvertCard_advertTitle")]/text()',
         'adv_img': '//div[contains(@class, "PhotoGallery_block")]//img/@src',
-        'adv_specification': '//div[contains(@class, "AdvertCard_specs")]//div/text()',
+        'adv_specification': '//div[contains(@class, "AdvertCard_specs")]//div[contains(@class, "AdvertSpecs")]',
         'adv_description': '//div[contains(@class, "AdvertCard_descriptionInner")]/text()',
         'adv_seller_url': '',
 
@@ -32,11 +32,14 @@ class YoulaSpider(scrapy.Spider):
             yield response.follow(url, callback=self.ads_parse)
 
     def ads_parse(self, response, **kwargs):
+        spec_path = self.xpath['adv_specification']
         advert_dict = {'title': response.xpath(self.xpath['adv_title']).extract_first(),
                        'img_list': response.xpath(self.xpath['adv_img']).extract(),
-                       'specification': response.xpath(self.xpath['adv_specification']).extract(),
+                       'specification': {response.xpath(spec_path + '//div/div[1]/text()').get(): response.xpath(
+                           spec_path + '//div/div[2]/text()').get() or response.xpath(
+                           spec_path + '//div/div[2]/a/text()').get()},
                        'description': response.xpath(self.xpath['adv_description']).extract_first().replace('\n', '. '),
-                       'seller': response.xpath('//div[contains(@class, "app_gridAsideChildren")]//'),
+                       # 'seller': response.xpath('//div[contains(@class, "app_gridAsideChildren")]//'),
                        }
         self.save_to_db(advert_dict)
 
@@ -44,4 +47,4 @@ class YoulaSpider(scrapy.Spider):
         collection = self.db_client['scrapy_youla'][self.name]
         collection.insert_one(advert)
 
-        print(1)
+    print(1)
