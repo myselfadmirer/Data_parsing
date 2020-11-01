@@ -64,6 +64,10 @@ def get_activities_out(itm):
     return itm
 
 
+# def join_text_out(itm):
+#     return ''.join(itm)
+
+
 def get_employer_url(itm):
     base_url = 'https://hh.ru'
     result = base_url + itm
@@ -93,7 +97,5 @@ class HhRemoteLoaderEmployer(ItemLoader):
     name_out = TakeFirst()
     employer_url_out = TakeFirst()
     areas_of_activity_in = MapCompose(get_activities_out)
-    # areas_of_activity_out = TakeFirst()
     description_in = ''.join
     description_out = TakeFirst()
-    print(2)
