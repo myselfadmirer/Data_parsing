@@ -6,3 +6,9 @@
 *.pdf
 *.json
 *.iml
+*.db
+/lesson3/gb_blog.db
+*.cfg
+/lesson5/
+/lesson4/.env
+/lesson4/image/
