@@ -41,3 +41,21 @@ class HhRemoteItemEmployer(scrapy.Item):
     employer_url = scrapy.Field()
     areas_of_activity = scrapy.Field()
     description = scrapy.Field()
+
+
+class InstagramItem(scrapy.Item):
+    _id = scrapy.Field()
+    id = scrapy.Field()
+    date_parse = scrapy.Field()
+    data = scrapy.Field()
+    pic_url = scrapy.Field()
+
+
+class InstagramPostItem(InstagramItem):
+    """saving post data"""
+    pass
+
+
+class InstagramTagItem(InstagramItem):
+    """tag data"""
+    pass

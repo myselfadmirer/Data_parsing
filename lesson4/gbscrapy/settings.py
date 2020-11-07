@@ -8,6 +8,10 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 BOT_NAME = 'gbscrapy'
+LOG_ENABLE = True
+LOG_LEVEL = 'DEBUG'
+
+IMAGES_STORE = 'image'
 
 SPIDER_MODULES = ['gbscrapy.spiders']
 NEWSPIDER_MODULE = 'gbscrapy.spiders'
@@ -64,7 +68,8 @@ DEFAULT_REQUEST_HEADERS = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'gbscrapy.pipelines.GbscrapyPipeline': 300,
+    'gbscrapy.pipelines.GbscrapyImagesPipeline': 200,
+    'gbscrapy.pipelines.GbscrapyPipeline': 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
