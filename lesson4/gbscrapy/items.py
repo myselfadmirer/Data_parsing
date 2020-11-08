@@ -52,10 +52,32 @@ class InstagramItem(scrapy.Item):
 
 
 class InstagramPostItem(InstagramItem):
-    """saving post data"""
+    """post data"""
     pass
 
 
 class InstagramTagItem(InstagramItem):
     """tag data"""
     pass
+
+
+class InstagramUserItem(InstagramItem):
+    """user data"""
+
+
+class InstagramFollowersItem(scrapy.Item):
+    """followers"""
+    _id = scrapy.Field()
+    user_id = scrapy.Field()
+    user_name = scrapy.Field()
+    follower_id = scrapy.Field()
+    follower_name = scrapy.Field()
+
+
+class InstagramFollowingItem(scrapy.Item):
+    """following"""
+    _id = scrapy.Field()
+    user_id = scrapy.Field()
+    user_name = scrapy.Field()
+    following_id = scrapy.Field()
+    following_name = scrapy.Field()
