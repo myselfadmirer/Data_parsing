@@ -54,7 +54,6 @@ class InstagramSpider(scrapy.Spider):
                     yield response.follow(f'/{user}/', callback=self.user_info_parse,
                                           cb_kwargs={'param': user, })
 
-
     def tag_parse(self, response, **kwargs):
         tag_data = self.js_data_extract(response)['entry_data']['TagPage'][0]['graphql']['hashtag']
         yield InstagramTagItem(date_parse=datetime.now(), data={'id': tag_data['id'],
@@ -96,19 +95,17 @@ class InstagramSpider(scrapy.Spider):
 
     def user_info_parse(self, response, **kwargs):
         user_data = self.js_data_extract(response)['entry_data']['ProfilePage'][0]['graphql']['user']
-        try:
-            yield InstagramUserItem(date_parse=datetime.now(),
-                                    data=user_data,
-                                    )
-        except KeyError:
+        item = yield InstagramUserItem(date_parse=datetime.now(), data=user_data, )
+        if isinstance(item, str):
+            print(item)
             pass
-
-        """followers"""
-        yield from self.get_api_followers_following_parse(response, user_data, self.followers_query_hash,
-                                                          'edge_followed_by')
-        '''following'''
-        yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash,
-                                                          'edge_follow')
+        else:
+            """followers"""
+            yield from self.get_api_followers_following_parse(response, user_data, self.followers_query_hash,
+                                                              'edge_followed_by')
+            '''following'''
+            yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash,
+                                                              'edge_follow')
 
     def get_api_followers_following_parse(self, response, user_data, query_hash, edge, variables=None):
         if not variables:
@@ -135,7 +132,8 @@ class InstagramSpider(scrapy.Spider):
                 }
                 yield from self.get_api_followers_following_parse(response, kwargs['user_data'], kwargs['query_hash'],
                                                                   kwargs['edge'], variables)
-        self.get_result_set(kwargs['user_data']['username'])
+            else:
+                return self.get_result_set(kwargs['user_data']['username'])
 
     def get_follow_item(self, user_data, follow_data, edge):
         for user in follow_data[edge]['edges']:

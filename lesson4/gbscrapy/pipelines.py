@@ -19,11 +19,16 @@ class GbscrapyPipeline:
     def process_item(self, item, spider):
         collection = self.db[type(item).__name__]
         try:
-            item['data'] and self.db.InstagramUserItem.find({'data': {'username': item['data']['username']}})
+            data = item['data']
+            user_info = self.db.InstagramUserItem.find_one({'data.username': item['data']['username']})
+            if not user_info:
+                collection.insert_one(item)
+                return item
+            else:
+                return 'item already exists'
         except KeyError:
             collection.insert_one(item)
             return item
-        return True
 
 
 class GbscrapyImagesPipeline(ImagesPipeline):
