@@ -81,3 +81,10 @@ class InstagramFollowingItem(scrapy.Item):
     user_name = scrapy.Field()
     following_id = scrapy.Field()
     following_name = scrapy.Field()
+
+
+class InstagramPathItem(scrapy.Item):
+    _id = scrapy.Field()
+    start_user = scrapy.Field()
+    target_user = scrapy.Field()
+    path = scrapy.Field()

@@ -68,7 +68,7 @@ DEFAULT_REQUEST_HEADERS = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'gbscrapy.pipelines.GbscrapyImagesPipeline': 200,
+    # 'gbscrapy.pipelines.GbscrapyImagesPipeline': 200,
     'gbscrapy.pipelines.GbscrapyPipeline': 300,
 }
 

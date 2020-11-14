@@ -18,8 +18,12 @@ class GbscrapyPipeline:
 
     def process_item(self, item, spider):
         collection = self.db[type(item).__name__]
-        collection.insert_one(item)
-        return item
+        try:
+            item['data'] and self.db.InstagramUserItem.find({'data': {'username': item['data']['username']}})
+        except KeyError:
+            collection.insert_one(item)
+            return item
+        return True
 
 
 class GbscrapyImagesPipeline(ImagesPipeline):
@@ -43,3 +47,12 @@ class GbscrapyImagesPipeline(ImagesPipeline):
         except KeyError:
             pass
         return item
+
+#
+# class GbscrapyCheckPipeline:
+#     def __init__(self):
+#         client = MongoClient('localhost', 27017)
+#         self.db = client['scrapy']
+
+
+

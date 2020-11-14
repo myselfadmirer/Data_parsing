@@ -1,7 +1,9 @@
 import scrapy
 import json
 from datetime import datetime
-from items import InstagramPostItem, InstagramTagItem, InstagramUserItem, InstagramFollowersItem, InstagramFollowingItem
+from collections import deque
+from items import InstagramPostItem, InstagramTagItem, InstagramUserItem, InstagramFollowersItem, \
+    InstagramFollowingItem, InstagramPathItem
 
 
 class InstagramSpider(scrapy.Spider):
@@ -16,9 +18,14 @@ class InstagramSpider(scrapy.Spider):
 
     def __init__(self, login, enc_password, *args, **kwargs):
         self.tags = ['cat']
-        self.users = ['myself_admirer']
+        self.start_user = 'myself_admirer'
+        self.target_user = ''
+        self.users_deque = deque([self.start_user])
         self.login = login
         self.enc_password = enc_password
+        self.path = []
+        self.followers_set = set()
+        self.following_set = set()
         super().__init__(*args, **kwargs)
 
     def parse(self, response, **kwargs):
@@ -38,11 +45,15 @@ class InstagramSpider(scrapy.Spider):
             )
         except AttributeError as e:
             if response.json().get('authenticated'):
-                for tag in self.tags:
-                    yield response.follow(f'/explore/tags/{tag}/', callback=self.tag_parse, cb_kwargs={'param': tag})
-                for user in self.users:
+                # for tag in self.tags:
+                #     yield response.follow(f'/explore/tags/{tag}/', callback=self.tag_parse, cb_kwargs={'param': tag})
+                while self.users_deque:
+                    user = self.users_deque.pop()
+                    self.followers_set.clear()
+                    self.following_set.clear()
                     yield response.follow(f'/{user}/', callback=self.user_info_parse,
-                                          cb_kwargs={'param': user})
+                                          cb_kwargs={'param': user, })
+
 
     def tag_parse(self, response, **kwargs):
         tag_data = self.js_data_extract(response)['entry_data']['TagPage'][0]['graphql']['hashtag']
@@ -85,14 +96,19 @@ class InstagramSpider(scrapy.Spider):
 
     def user_info_parse(self, response, **kwargs):
         user_data = self.js_data_extract(response)['entry_data']['ProfilePage'][0]['graphql']['user']
-        yield InstagramUserItem(date_parse=datetime.now(),
-                                data=user_data,
-                                )
+        try:
+            yield InstagramUserItem(date_parse=datetime.now(),
+                                    data=user_data,
+                                    )
+        except KeyError:
+            pass
+
         """followers"""
         yield from self.get_api_followers_following_parse(response, user_data, self.followers_query_hash,
                                                           'edge_followed_by')
         '''following'''
-        yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash, 'edge_follow')
+        yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash,
+                                                          'edge_follow')
 
     def get_api_followers_following_parse(self, response, user_data, query_hash, edge, variables=None):
         if not variables:
@@ -103,7 +119,8 @@ class InstagramSpider(scrapy.Spider):
         api_url = f'{self.query_url}?query_hash={query_hash}&variables={json.dumps(variables)}'
         yield response.follow(api_url, callback=self.followers_following_parse, cb_kwargs={'user_data': user_data,
                                                                                            'edge': edge,
-                                                                                           'query_hash': query_hash})
+                                                                                           'query_hash': query_hash,
+                                                                                           })
 
     def followers_following_parse(self, response, **kwargs):
         if b'application/json' in response.headers['Content-Type']:
@@ -118,29 +135,46 @@ class InstagramSpider(scrapy.Spider):
                 }
                 yield from self.get_api_followers_following_parse(response, kwargs['user_data'], kwargs['query_hash'],
                                                                   kwargs['edge'], variables)
+        self.get_result_set(kwargs['user_data']['username'])
 
-    @staticmethod
-    def get_follow_item(user_data, follow_data, edge):
+    def get_follow_item(self, user_data, follow_data, edge):
         for user in follow_data[edge]['edges']:
             if edge == 'edge_followed_by':
                 """followers"""
+                self.followers_set.add(user['node']['username'])
                 yield InstagramFollowersItem(
                     user_id=user_data['id'],
                     user_name=user_data['username'],
                     follower_id=user['node']['id'],
                     follower_name=user['node']['username'],
                 )
+
             elif edge == 'edge_follow':
                 """following"""
+                self.following_set.add(user['node']['username'])
                 yield InstagramFollowingItem(
                     user_id=user_data['id'],
                     user_name=user_data['username'],
                     following_id=user['node']['id'],
                     following_name=user['node']['username'],
                 )
+
             else:
                 pass
-            yield InstagramUserItem(
-                date_parse=datetime.now(),
-                data=user['node'],
-            )
+
+    def get_result_set(self, username):
+        result_set = self.followers_set.intersection(self.following_set)
+        if self.target_user in result_set:
+            self.users_deque.clear()
+            self.path.append(username)
+            yield InstagramPathItem(start_user=self.start_user,
+                                    target_user=self.target_user,
+                                    path=self.path,
+                                    )
+        else:
+            self.users_deque.extendleft(list(result_set))
+
+            # yield InstagramUserItem(
+            #     date_parse=datetime.now(),
+            #     data=user['node'],
+            # )
