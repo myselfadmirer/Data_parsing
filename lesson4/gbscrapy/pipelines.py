@@ -8,6 +8,7 @@
 from itemadapter import ItemAdapter
 from pymongo import MongoClient
 from scrapy import Request
+from scrapy.exceptions import DropItem
 from scrapy.pipelines.images import ImagesPipeline
 
 
@@ -25,10 +26,11 @@ class GbscrapyPipeline:
                 collection.insert_one(item)
                 return item
             else:
-                return 'item already exists'
+                raise DropItem(f'The user already exists')
         except KeyError:
-            collection.insert_one(item)
-            return item
+            raise DropItem(f'relationship')
+            # collection.insert_one(item)
+            # return item
 
 
 class GbscrapyImagesPipeline(ImagesPipeline):

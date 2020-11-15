@@ -19,7 +19,7 @@ class InstagramSpider(scrapy.Spider):
     def __init__(self, login, enc_password, *args, **kwargs):
         self.tags = ['cat']
         self.start_user = 'myself_admirer'
-        self.target_user = ''
+        self.target_user = 'nba'
         self.users_deque = deque([self.start_user])
         self.login = login
         self.enc_password = enc_password
@@ -47,12 +47,15 @@ class InstagramSpider(scrapy.Spider):
             if response.json().get('authenticated'):
                 # for tag in self.tags:
                 #     yield response.follow(f'/explore/tags/{tag}/', callback=self.tag_parse, cb_kwargs={'param': tag})
-                while self.users_deque:
-                    user = self.users_deque.pop()
-                    self.followers_set.clear()
-                    self.following_set.clear()
-                    yield response.follow(f'/{user}/', callback=self.user_info_parse,
-                                          cb_kwargs={'param': user, })
+                yield from self.get_users_deque_parse(response)
+
+    def get_users_deque_parse(self, response):
+        while self.users_deque:
+            user = self.users_deque.pop()
+            self.followers_set.clear()
+            self.following_set.clear()
+            yield response.follow(f'/{user}/', callback=self.user_info_parse,
+                                  cb_kwargs={'param': user, })
 
     def tag_parse(self, response, **kwargs):
         tag_data = self.js_data_extract(response)['entry_data']['TagPage'][0]['graphql']['hashtag']
@@ -95,17 +98,13 @@ class InstagramSpider(scrapy.Spider):
 
     def user_info_parse(self, response, **kwargs):
         user_data = self.js_data_extract(response)['entry_data']['ProfilePage'][0]['graphql']['user']
-        item = yield InstagramUserItem(date_parse=datetime.now(), data=user_data, )
-        if isinstance(item, str):
-            print(item)
-            pass
-        else:
-            """followers"""
-            yield from self.get_api_followers_following_parse(response, user_data, self.followers_query_hash,
-                                                              'edge_followed_by')
-            '''following'''
-            yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash,
-                                                              'edge_follow')
+        yield InstagramUserItem(date_parse=datetime.now(), data=user_data,)
+        """followers"""
+        yield from self.get_api_followers_following_parse(response, user_data, self.followers_query_hash,
+                                                          'edge_followed_by')
+        '''following'''
+        yield from self.get_api_followers_following_parse(response, user_data, self.following_query_hash,
+                                                          'edge_follow')
 
     def get_api_followers_following_parse(self, response, user_data, query_hash, edge, variables=None):
         if not variables:
@@ -133,7 +132,7 @@ class InstagramSpider(scrapy.Spider):
                 yield from self.get_api_followers_following_parse(response, kwargs['user_data'], kwargs['query_hash'],
                                                                   kwargs['edge'], variables)
             else:
-                return self.get_result_set(kwargs['user_data']['username'])
+                yield from self.get_result_set(kwargs['user_data']['username'], response)
 
     def get_follow_item(self, user_data, follow_data, edge):
         for user in follow_data[edge]['edges']:
@@ -160,7 +159,7 @@ class InstagramSpider(scrapy.Spider):
             else:
                 pass
 
-    def get_result_set(self, username):
+    def get_result_set(self, username, response):
         result_set = self.followers_set.intersection(self.following_set)
         if self.target_user in result_set:
             self.users_deque.clear()
@@ -171,6 +170,7 @@ class InstagramSpider(scrapy.Spider):
                                     )
         else:
             self.users_deque.extendleft(list(result_set))
+            yield from self.get_users_deque_parse(response)
 
             # yield InstagramUserItem(
             #     date_parse=datetime.now(),
