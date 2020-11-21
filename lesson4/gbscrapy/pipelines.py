@@ -29,14 +29,16 @@ class GbscrapyPipeline:
                 raise DropItem(f'The user already exists')
         except KeyError:
             # raise DropItem(f'relationship')
-            if item['path']:
-                while not item['start_user'] in item['path']:
-                    next_point = self.db.InstagramParentItem.find_one({'user': item['path'][0]})
-                    item['path'].appendleft(next_point['parent_user'])
-
+            try:
+                path = item['path']
+                while not item['start_user'] in path:
+                    next_point = self.db.InstagramParentItem.find_one({'user': path[0]})
+                    path.appendleft(next_point['parent_user'])
+                item['path'] = list(path)
+                print(item['path'])
                 collection.insert_one(item)
                 return item
-            else:
+            except KeyError:
                 collection.insert_one(item)
                 return item
 

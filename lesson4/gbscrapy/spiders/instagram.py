@@ -18,8 +18,8 @@ class InstagramSpider(scrapy.Spider):
 
     def __init__(self, login, enc_password, *args, **kwargs):
         self.tags = ['cat']
-        self.start_user = 'myself_admirer'
-        self.target_user = 'nba'
+        self.start_user = 'little_nancy_drew'
+        self.target_user = 'dmitris2007'
         self.users_deque = deque([self.start_user])
         self.login = login
         self.enc_password = enc_password
