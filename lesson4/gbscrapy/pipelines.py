@@ -21,7 +21,7 @@ class GbscrapyPipeline:
         collection = self.db[type(item).__name__]
         try:
             data = item['data']
-            user_info = self.db.InstagramUserItem.find_one({'data.username': item['data']['username']})
+            user_info = self.db.InstagramUserItem.find_one({'data.username': data['username']})
             if not user_info:
                 collection.insert_one(item)
                 return item
@@ -31,13 +31,15 @@ class GbscrapyPipeline:
             # raise DropItem(f'relationship')
             try:
                 path = item['path']
-                while not item['start_user'] in path:
-                    next_point = self.db.InstagramParentItem.find_one({'user': path[0]})
-                    path.appendleft(next_point['parent_user'])
-                item['path'] = list(path)
-                print(item['path'])
-                collection.insert_one(item)
-                raise CloseSpider(reason='path is completed')
+                if not item['start_user'] in path:
+                    while not item['start_user'] in path:
+                        next_point = self.db.InstagramParentItem.find_one({'user': path[0]})
+                        path.appendleft(next_point['parent_user'])
+                    item['path'] = list(path)
+                    print(item['path'])
+                    collection.insert_one(item)
+                else:
+                    raise CloseSpider(reason='path is completed')
             except KeyError:
                 collection.insert_one(item)
                 return item
