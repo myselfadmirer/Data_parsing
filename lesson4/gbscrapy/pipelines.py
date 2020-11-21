@@ -20,7 +20,7 @@ class GbscrapyPipeline:
     def process_item(self, item, spider):
         collection = self.db[type(item).__name__]
         try:
-            data = item['data']
+            # data = item['data']
             user_info = self.db.InstagramUserItem.find_one({'data.username': item['data']['username']})
             if not user_info:
                 collection.insert_one(item)
@@ -28,9 +28,17 @@ class GbscrapyPipeline:
             else:
                 raise DropItem(f'The user already exists')
         except KeyError:
-            raise DropItem(f'relationship')
-            # collection.insert_one(item)
-            # return item
+            # raise DropItem(f'relationship')
+            if item['path']:
+                while not item['start_user'] in item['path']:
+                    next_point = self.db.InstagramParentItem.find_one({'user': item['path'][0]})
+                    item['path'].appendleft(next_point['parent_user'])
+
+                collection.insert_one(item)
+                return item
+            else:
+                collection.insert_one(item)
+                return item
 
 
 class GbscrapyImagesPipeline(ImagesPipeline):

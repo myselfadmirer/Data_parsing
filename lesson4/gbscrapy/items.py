@@ -88,3 +88,9 @@ class InstagramPathItem(scrapy.Item):
     start_user = scrapy.Field()
     target_user = scrapy.Field()
     path = scrapy.Field()
+
+
+class InstagramParentItem(scrapy.Item):
+    _id = scrapy.Field()
+    user = scrapy.Field()
+    parent_user = scrapy.Field()

@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from collections import deque
 from items import InstagramPostItem, InstagramTagItem, InstagramUserItem, InstagramFollowersItem, \
-    InstagramFollowingItem, InstagramPathItem
+    InstagramFollowingItem, InstagramPathItem, InstagramParentItem
 
 
 class InstagramSpider(scrapy.Spider):
@@ -23,7 +23,7 @@ class InstagramSpider(scrapy.Spider):
         self.users_deque = deque([self.start_user])
         self.login = login
         self.enc_password = enc_password
-        self.path = []
+        self.path = deque()
         self.followers_set = set()
         self.following_set = set()
         super().__init__(*args, **kwargs)
@@ -139,21 +139,25 @@ class InstagramSpider(scrapy.Spider):
             if edge == 'edge_followed_by':
                 """followers"""
                 self.followers_set.add(user['node']['username'])
-                yield InstagramFollowersItem(
-                    user_id=user_data['id'],
-                    user_name=user_data['username'],
-                    follower_id=user['node']['id'],
-                    follower_name=user['node']['username'],
-                )
+                # yield InstagramFollowersItem(
+                #     user_id=user_data['id'],
+                #     user_name=user_data['username'],
+                #     follower_id=user['node']['id'],
+                #     follower_name=user['node']['username'],
+                # )
 
             elif edge == 'edge_follow':
                 """following"""
                 self.following_set.add(user['node']['username'])
-                yield InstagramFollowingItem(
-                    user_id=user_data['id'],
-                    user_name=user_data['username'],
-                    following_id=user['node']['id'],
-                    following_name=user['node']['username'],
+                # yield InstagramFollowingItem(
+                #     user_id=user_data['id'],
+                #     user_name=user_data['username'],
+                #     following_id=user['node']['id'],
+                #     following_name=user['node']['username'],
+                # )
+                yield InstagramParentItem(
+                    user=user['node']['username'],
+                    parent_user=user_data['username'],
                 )
 
             else:
@@ -164,6 +168,7 @@ class InstagramSpider(scrapy.Spider):
         if self.target_user in result_set:
             self.users_deque.clear()
             self.path.append(username)
+            self.path.append(self.target_user)
             yield InstagramPathItem(start_user=self.start_user,
                                     target_user=self.target_user,
                                     path=self.path,
