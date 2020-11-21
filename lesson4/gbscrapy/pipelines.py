@@ -8,7 +8,7 @@
 from itemadapter import ItemAdapter
 from pymongo import MongoClient
 from scrapy import Request
-from scrapy.exceptions import DropItem
+from scrapy.exceptions import DropItem, CloseSpider
 from scrapy.pipelines.images import ImagesPipeline
 
 
@@ -20,7 +20,7 @@ class GbscrapyPipeline:
     def process_item(self, item, spider):
         collection = self.db[type(item).__name__]
         try:
-            # data = item['data']
+            data = item['data']
             user_info = self.db.InstagramUserItem.find_one({'data.username': item['data']['username']})
             if not user_info:
                 collection.insert_one(item)
@@ -37,7 +37,7 @@ class GbscrapyPipeline:
                 item['path'] = list(path)
                 print(item['path'])
                 collection.insert_one(item)
-                return item
+                raise CloseSpider(reason='path is completed')
             except KeyError:
                 collection.insert_one(item)
                 return item

@@ -7,6 +7,7 @@ from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+from scrapy.downloadermiddlewares.retry import RetryMiddleware
 
 
 class GbscrapySpiderMiddleware:
@@ -101,3 +102,22 @@ class GbscrapyDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class Retry429Middleware(RetryMiddleware):
+    def __init__(self, crawler):
+        super().__init__(crawler.settings)
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
+
+    def process_response(self, request, response, spider):
+        if response.status == 429:
+            self.crawler.engine.pause()
+            time.sleep(300)
+            self.crawler.engine.unpause()
+            reason = response_status_message(response.status)
+            return self._retry(request, reason, spider)
+        return response
